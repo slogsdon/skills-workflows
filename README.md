@@ -1,3 +1,5 @@
+> **[shane.logsdon.io](https://shane.logsdon.io)** — writing and projects on agentic workflows, web standards, and payments engineering.
+
 # skills-workflows
 
 Pipeline orchestration and workflow skills for Claude Code. 8 skills total: 5 `workflow-*` orchestrators plus `publish-post`, `agents-md-generator`, and `work-tracking`.
