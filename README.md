@@ -1,8 +1,8 @@
 # skills-workflows
 
-Pipeline orchestration and workflow skills for Claude Code.
+Pipeline orchestration and workflow skills for Claude Code. 8 skills total: 5 `workflow-*` orchestrators plus `publish-post`, `agents-md-generator`, and `work-tracking`.
 
-Install via the slogsdon-claude-code-config marketplace.
+Install via the [slogsdon-claude-code-config marketplace](https://github.com/slogsdon/claude-code-config).
 
 ## Skills
 
@@ -18,3 +18,7 @@ Install via the slogsdon-claude-code-config marketplace.
 ## Reference
 
 - **_workflow-lib/** — Shared workflow library (not a skill; used by the workflow skills above)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
