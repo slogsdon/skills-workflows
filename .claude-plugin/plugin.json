@@ -1,6 +1,6 @@
 {
   "name": "skills-workflows",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pipeline orchestration and workflow skills — publish-post, agents-md-generator, work-tracking, agent-harness, and 5 workflow skills (design, feature-spec, stage-draft, vault-weekly, monthly-skill-audit).",
   "author": { "name": "Shane Logsdon" },
   "license": "MIT"

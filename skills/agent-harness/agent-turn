@@ -36,6 +36,59 @@ log_turn() {
 
 log_turn "user" "$PROMPT"
 
+# --- hermes session helpers ---
+HERMES_MAP_FILE="$LOG_DIR/hermes-session-map"
+
+hermes_get_uuid() {
+  local name="$1"
+  grep "^${name}=" "$HERMES_MAP_FILE" 2>/dev/null | cut -d= -f2 | head -1
+}
+
+hermes_save_uuid() {
+  local name="$1"
+  local uuid="$2"
+  local tmp
+  tmp=$(mktemp)
+  grep -v "^${name}=" "$HERMES_MAP_FILE" 2>/dev/null > "$tmp" || true
+  echo "${name}=${uuid}" >> "$tmp"
+  mv "$tmp" "$HERMES_MAP_FILE"
+}
+
+run_hermes() {
+  local name="$1"
+  local prompt="$2"
+  local uuid tmpfile
+  uuid=$(hermes_get_uuid "$name")
+  tmpfile=$(mktemp)
+
+  # Optional model/provider override via env: AGENT_HERMES_MODEL, AGENT_HERMES_PROVIDER
+  local model_args=()
+  if [[ -n "${AGENT_HERMES_MODEL:-}" ]]; then
+    model_args+=(-m "$AGENT_HERMES_MODEL")
+    model_args+=(--provider "${AGENT_HERMES_PROVIDER:-custom}")
+  fi
+
+  if [[ -z "$uuid" ]]; then
+    # First turn: create a new session, capture its UUID afterward
+    local before_ids after_ids new_id
+    before_ids=$(hermes sessions list 2>/dev/null | awk 'NR>2 {print $NF}' | sort || true)
+
+    hermes -z "$prompt" "${model_args[@]}" > "$tmpfile" 2>&1
+
+    after_ids=$(hermes sessions list 2>/dev/null | awk 'NR>2 {print $NF}' | sort || true)
+    new_id=$(comm -13 <(echo "$before_ids") <(echo "$after_ids") | tail -1)
+
+    if [[ -n "$new_id" ]]; then
+      hermes_save_uuid "$name" "$new_id"
+    fi
+  else
+    hermes -z "$prompt" --resume "$uuid" "${model_args[@]}" > "$tmpfile" 2>&1
+  fi
+
+  cat "$tmpfile"
+  rm -f "$tmpfile"
+}
+
 # --- pi session helpers ---
 PI_SESSION_DIR="$LOG_DIR/pi-sessions"
 PI_MAP_FILE="$LOG_DIR/pi-session-map"
@@ -104,7 +157,7 @@ case "$TOOL" in
       echo "ERROR: hermes not found in PATH" >&2
       exit 1
     fi
-    output=$(hermes --resume "$SESSION" "$PROMPT" 2>&1)
+    output=$(run_hermes "$SESSION" "$PROMPT")
     ;;
   *)
     echo "ERROR: unsupported tool '$TOOL'. Supported: pi, hermes" >&2
