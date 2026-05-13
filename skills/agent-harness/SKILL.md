@@ -9,12 +9,15 @@ You are orchestrating external agent harnesses (pi, hermes) via the `agent-turn`
 
 ## Prerequisites
 
-Locate the wrapper script relative to the repo root:
+The `agent-turn` script ships alongside this skill. Resolve it at runtime:
 ```bash
-AGENT_TURN="$(git rev-parse --show-toplevel)/scripts/agent-turn"
+SKILL_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]:-$0}")")"
+AGENT_TURN="$SKILL_DIR/agent-turn"
 ```
 
 Use `$AGENT_TURN` in place of `agent-turn` throughout all Bash calls in this skill.
+
+> **Note on pi sessions:** pi uses UUID-based sessions internally. The script maps your human-readable session IDs to pi UUIDs automatically — pass a stable name like `20260512-my-task` and the script handles the rest. Session data lives in `/tmp/agent-sessions/pi-sessions/` and the name→UUID map in `/tmp/agent-sessions/pi-session-map`.
 
 ## Session ID Convention
 

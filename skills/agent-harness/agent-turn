@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Turn-by-turn wrapper for external agent harnesses (pi, hermes).
+# Manages session IDs, logs output, and provides consistent invocation.
+#
+# Usage:
+#   agent-turn <tool> <session-id> <prompt>
+#   agent-turn pi my-session "what is the weather?"
+#   agent-turn hermes my-session "follow-up question"
+#
+# Session IDs are human-readable names — the script maps them to tool-native
+# UUIDs automatically. Pass the same ID across turns to resume.
+# Output is written to stdout and logged to /tmp/agent-sessions/<session-id>.log
+
+set -euo pipefail
+
+TOOL="${1:-}"
+SESSION="${2:-}"
+PROMPT="${3:-}"
+
+if [[ -z "$TOOL" || -z "$SESSION" || -z "$PROMPT" ]]; then
+  echo "Usage: agent-turn <tool> <session-id> <prompt>" >&2
+  echo "  Tools: pi, hermes" >&2
+  exit 1
+fi
+
+LOG_DIR="/tmp/agent-sessions"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/${SESSION}.log"
+TURN_MARKER="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+log_turn() {
+  local role="$1"
+  local content="$2"
+  printf '\n[%s] [%s]\n%s\n' "$TURN_MARKER" "$role" "$content" >> "$LOG_FILE"
+}
+
+log_turn "user" "$PROMPT"
+
+# --- pi session helpers ---
+PI_SESSION_DIR="$LOG_DIR/pi-sessions"
+PI_MAP_FILE="$LOG_DIR/pi-session-map"
+
+pi_get_uuid() {
+  local name="$1"
+  grep "^${name}=" "$PI_MAP_FILE" 2>/dev/null | cut -d= -f2 | head -1
+}
+
+pi_save_uuid() {
+  local name="$1"
+  local uuid="$2"
+  # Remove any existing entry for this name, then append the new one
+  local tmp
+  tmp=$(mktemp)
+  grep -v "^${name}=" "$PI_MAP_FILE" 2>/dev/null > "$tmp" || true
+  echo "${name}=${uuid}" >> "$tmp"
+  mv "$tmp" "$PI_MAP_FILE"
+}
+
+pi_extract_uuid_from_file() {
+  # Session files are named <timestamp>_<uuid>.jsonl — extract the UUID part
+  local filename
+  filename=$(basename "$1")
+  echo "${filename}" | sed 's/^[^_]*_//' | sed 's/\.jsonl$//'
+}
+
+run_pi() {
+  local name="$1"
+  local prompt="$2"
+  local uuid
+  uuid=$(pi_get_uuid "$name")
+
+  mkdir -p "$PI_SESSION_DIR"
+
+  if [[ -z "$uuid" ]]; then
+    # First turn: no existing session — let pi create one, then capture the UUID
+    local snapshot_before snapshot_after new_file
+    snapshot_before=$(ls "$PI_SESSION_DIR"/*.jsonl 2>/dev/null | sort || true)
+
+    pi --print --session-dir "$PI_SESSION_DIR" "$prompt" 2>&1
+
+    snapshot_after=$(ls "$PI_SESSION_DIR"/*.jsonl 2>/dev/null | sort || true)
+    new_file=$(comm -13 <(echo "$snapshot_before") <(echo "$snapshot_after") | head -1)
+
+    if [[ -n "$new_file" ]]; then
+      uuid=$(pi_extract_uuid_from_file "$new_file")
+      pi_save_uuid "$name" "$uuid"
+    fi
+  else
+    pi --print --session "$uuid" --session-dir "$PI_SESSION_DIR" "$prompt" 2>&1
+  fi
+}
+
+# --- dispatch ---
+case "$TOOL" in
+  pi)
+    if ! command -v pi &>/dev/null; then
+      echo "ERROR: pi not found in PATH" >&2
+      exit 1
+    fi
+    output=$(run_pi "$SESSION" "$PROMPT")
+    ;;
+  hermes)
+    if ! command -v hermes &>/dev/null; then
+      echo "ERROR: hermes not found in PATH" >&2
+      exit 1
+    fi
+    output=$(hermes --resume "$SESSION" "$PROMPT" 2>&1)
+    ;;
+  *)
+    echo "ERROR: unsupported tool '$TOOL'. Supported: pi, hermes" >&2
+    exit 1
+    ;;
+esac
+
+log_turn "agent" "$output"
+echo "$output"
