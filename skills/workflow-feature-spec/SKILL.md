@@ -76,6 +76,25 @@ Examples:
 
 - `--no-pause` to run end-to-end (rare — usually you want the checkpoints here).
 
+## Session open
+
+Check for `docs/superpowers/STATE.md`. If it exists, read `Verified facts`, `General rules`, and `Last session` before starting — these carry forward what the last run learned so this run doesn't re-derive it.
+
+## Stage quality gate
+
+After each stage completes, before the checkpoint: does the output actually satisfy the stage goal (brief = business intent clear; spec = technical approach decided; plan = tasks are executable)? If it partially misses, retry the stage once with an explicit note on the gap. On second failure, surface the issue to the user rather than continuing.
+
+Stage validation should use a separate verification pass (re-read the output with fresh eyes as a critic, not as the author) rather than the author confirming their own work.
+
+## Session close
+
+After the pipeline completes, append to `docs/superpowers/STATE.md`:
+- Any decisions that were non-obvious and should not be re-derived next time
+- Any stage that required a retry and why
+- The resume pointer (last step completed, next step if interrupted)
+
+If a stage consistently required retries across multiple runs, update this SKILL.md's stage description with the failure mode.
+
 ## Failure handling
 
 Brainstorming and writing-plans both have their own surface-assumptions / push-back behaviors built in. The workflow does not paper over those — when a sub-skill asks a clarifying question, the workflow surfaces it to the user. If a stage errors, stop and print the failed step plus the resume command (`/workflow-feature-spec --resume-from <step>`).

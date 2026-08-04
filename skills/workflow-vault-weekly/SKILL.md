@@ -95,6 +95,10 @@ Examples:
 - `--skip <step>` to skip a step (e.g. `--skip learnings` to stop after signals).
 - `--no-pause` to run end-to-end (use this for the cron-driven weekly run).
 
+## Stage quality gate
+
+After each stage: does the output actually address the stage goal (lint = issues enumerated; backlinks = graph repaired; index = current; signals = patterns surfaced; learnings = candidate threads identified)? If it partially misses, retry the stage once with an explicit note on the gap. On second failure, surface to the user and move on rather than blocking the rest of the pipeline.
+
 ## Failure handling
 
 If a stage errors, stop and print: which step failed, the underlying skill's error, and the resume command (`/workflow-vault-weekly --resume-from <step>`).

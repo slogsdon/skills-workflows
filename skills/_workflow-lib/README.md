@@ -81,3 +81,27 @@ Use the `Skill` tool. Pass arguments via the skill's documented `args` shape —
 - Add side effects that aren't documented in the underlying skill's "Output" section.
 - Skip sub-skill verification steps. If a stage's underlying skill has an output checklist, the workflow waits for it to be satisfied.
 - Accept a numeric `--resume-from <N>`. Step names only — they survive renumbering and self-document.
+
+## Stage quality gate
+
+Every workflow skill validates each stage before its checkpoint, using the same rule:
+
+> Does the output actually meet the stage goal? If it partially misses, retry the
+> stage **once** with an explicit note on the gap. On second failure, surface to the
+> user rather than auto-continuing.
+
+The per-skill instance names that workflow's own stage criteria — keep it local, since
+the criteria are what make the gate testable. Only the rule above is shared.
+
+Validate with a **critic framing** (re-read the output as a skeptic), not with the pass
+that produced it. Self-critique in the same context misses structural errors; this is
+the same reason `agent-harness` spawns a separate verifier session on its done path.
+
+## Session memory (STATE.md)
+
+Workflow skills that run repeatedly read a STATE.md at session open and write it at
+session close, so a run does not re-derive what the last one learned. Sections:
+`Verified facts`, `General rules`, `Open failures`, `Lessons learned`, `Last session`.
+
+STATE.md is project-scoped. When a session surfaces a failure mode that generalizes,
+write it into the SKILL.md itself — skills travel across projects, STATE.md does not.

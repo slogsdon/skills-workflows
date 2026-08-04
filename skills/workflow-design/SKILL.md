@@ -88,6 +88,10 @@ Examples:
 - `--skip <step>` to skip a step (e.g. `--skip screenshots` if user only wants HTML).
 - `--no-pause` to run end-to-end without checkpoints.
 
+## Stage quality gate
+
+After each stage: does the output meet the stage goal (plan = strategy clear; system = tokens render correctly; artifacts = visually match intent; screenshots = clean PNGs)? If it partially misses, retry the stage once with an explicit note on the gap. On second failure, surface to the user rather than auto-continuing.
+
 ## Failure handling
 
 If any stage errors, stop and print: which step failed, the underlying skill's error, and the resume command (`/workflow-design --resume-from <step>`).

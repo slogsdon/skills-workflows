@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.5.0 — 2026-08-04
+
+**Session memory and stage quality gates across five skills.** Written
+2026-07-03 from the Fable 5 self-improvement note, sat uncommitted for a month,
+reviewed and shipped 2026-08-04.
+
+- **`agent-harness`** — Session Open reads STATE.md before the first turn.
+  Turn loop now scores each response ✓ / △ / ✗ and, on the same issue twice,
+  **pivots** to a structurally different approach instead of re-sending. The
+  done path spawns a **separate harness session** with no shared context to
+  verify before presenting. Session Close writes STATE.md after any task of
+  4+ turns.
+- **`workflow-feature-spec`, `workflow-stage-draft`** — session open, stage
+  quality gate, session close.
+- **`workflow-design`, `workflow-vault-weekly`** — stage quality gate.
+
+**`_workflow-lib/README.md`** now documents the two shared conventions —
+the stage quality gate rule and the STATE.md session-memory contract — so the
+four per-skill instances don't drift. Per-skill text stays local because the
+stage criteria are what make each gate testable.
+
+The independent-verifier point arrived here from the Fable 5 note and was
+independently reached by the 2026-08-04 prompt-and-skill audit, which shipped
+`fresh-context-verify` on the same reasoning: self-critique in shared context
+confirms, it does not test.
+
+**Removed `PIPELINE-CHANGES.md`** — a cross-repo work log that had been sitting
+in the plugin root, where a marketplace consumer would read it as a changelog.
+Its per-skill content is this entry; its pipeline content was already in the
+WS5/WS6 plan files; its deferred-decisions section moved to the vault as
+`Fable 5 Pipeline Patterns — Applied and Deferred`.
+
 ## 0.4.0 — 2026-08-04
 
 **Added three skills**, each replacing a prompt Shane had been hand-writing

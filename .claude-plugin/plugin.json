@@ -1,6 +1,6 @@
 {
   "name": "skills-workflows",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Pipeline orchestration and workflow skills — research-sweep, adversarial-diff-verify, plugin-manifest-reference, publish-post, agents-md-generator, work-tracking, and 5 workflow orchestrators.",
   "author": { "name": "Shane Logsdon" },
   "license": "MIT"

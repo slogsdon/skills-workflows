@@ -40,18 +40,25 @@ Store it in context — you'll need it for every subsequent turn.
 
 Output is printed to stdout and logged to `/tmp/agent-sessions/<session-id>.log`.
 
+## Session Open
+
+Before sending the first turn, check for a STATE.md in the working directory. If it exists, read it and carry `Verified facts`, `General rules`, and `Last session` into context. This is stage 5 (Consult) of the memory progression — skip it and the next session restarts from zero.
+
 ## Turn-by-Turn Loop
 
 Follow this loop until the task is complete or you hit a stop condition:
 
 1. **Send turn** — call `agent-turn` with the current prompt
 2. **Read response** — the full output is in stdout
-3. **Evaluate** — decide: done / needs follow-up / needs correction / switch tools
+3. **Evaluate** — score the response against the task goal:
+   - ✓ advances task → continue normally
+   - △ partial / off-track → note specifically what's missing; compose a targeted corrective prompt
+   - ✗ stuck (same issue 2+ turns) → **pivot**: state explicitly what isn't working, then try a structurally different approach (different framing, different constraints, decompose differently)
 4. **Act**:
-   - Done → summarize and present to user
+   - Done → verify with a **separate harness session** (new session ID, no shared context with the maker) before presenting to user. A verifier with no exposure to the maker's reasoning finds gaps the maker won't. Self-critique in the same session misses structural errors.
    - Follow-up → compose next prompt, go to step 1
-   - Correction → compose corrective prompt with specific feedback, go to step 1
-   - Switch tools → use the other harness with a new session ID, carry relevant context forward in the prompt
+   - Correction → compose corrective prompt naming the gap and varying the approach, go to step 1
+   - Switch tools → synthesize context from current log, start new harness session
 
 ## Switching Between Harnesses
 
@@ -79,10 +86,26 @@ grep -A999 '\[agent\]' /tmp/agent-sessions/<session-id>.log
 ## Stop Conditions
 
 Stop the loop and present results when:
-- The agent's response fully satisfies the original task
+- The agent's response fully satisfies the original task (confirmed by self-check turn)
 - The agent indicates it cannot proceed (escalate to user)
 - You've made 3+ corrective turns on the same issue without progress (escalate to user)
 - The user has specified a max number of turns
+
+## Session Close
+
+After any task that took 4+ turns, write to STATE.md before ending. Five sections, only update what changed:
+
+```markdown
+## Verified facts        # things the session stopped guessing about
+## General rules         # distilled patterns that apply beyond this task
+## Open failures         # failures investigated but not yet resolved
+## Lessons learned       # new rules distilled from this session's post-mortems
+## Last session          # resume pointer — what to do first next session
+```
+
+If STATE.md doesn't exist, create it. Write before closing — a session that ends without a write restarts from zero next time.
+
+Skills that surfaced new failure modes or anti-patterns during the session should be updated directly: write the lesson into the Skill file, not just STATE.md. STATE.md is project-scoped; Skill updates travel across projects.
 
 ## Multi-Agent Pattern (pi + hermes in parallel)
 

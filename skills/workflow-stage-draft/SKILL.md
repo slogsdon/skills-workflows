@@ -98,6 +98,20 @@ Examples:
 
 - `--no-pause` to run end-to-end (use only when you've already iterated and just want a final pass).
 
+## Session open
+
+Check `Inbox/STATE.md` or the draft project's directory for a STATE.md. If present, read `General rules` and `Known failure modes` — these carry learned patterns (e.g. which humanize anti-patterns recur in Shane's technical writing) so they don't need to be re-discovered.
+
+## Stage quality gate
+
+After each stage: does the output meet the stage goal (draft = core argument present and in Shane's voice; humanize = AI-typical patterns removed without losing technical precision; style = terms and headings conform)? If it partially misses, retry once with an explicit note on the gap before presenting or continuing. On second failure, surface the issue rather than auto-continuing.
+
+Humanize and style passes should be validated by re-reading with a critic framing (does this read like a human wrote it?) rather than the same pass that produced it.
+
+## Session close
+
+If the humanize or style pass hit recurring issues, append them to this SKILL.md under a `## Known failure modes` section. Patterns that compound here improve every future draft run.
+
 ## Failure handling
 
 If `humanize` flags content it can't safely de-AI without losing technical accuracy, it stops and surfaces the conflict to the user. `style` then operates on whatever `humanize` produced. On any failure, print the failed step plus the resume command (`/workflow-stage-draft --resume-from <step>`).
