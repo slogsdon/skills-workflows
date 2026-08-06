@@ -34,6 +34,12 @@ Two paths depending on the input:
 - **From an idea / outline** (no existing draft): write a first draft in Shane's voice, anchored on whatever vault evidence exists. ~600–1200 words. Save to `Inbox/Draft - <slug>.md`.
 - **From an existing draft** (user pastes or names a vault note): read it; skip drafting; proceed to `humanize`.
 
+Before writing prose, write the outline with a word budget per H2 — tables and
+code blocks are their own line items, not free. Check the running count at each
+section boundary, not at the end. Over budget means cut a section or merge two,
+never trim adjectives: lexical trimming preserves the structure that caused the
+overrun.
+
 Output: draft file in vault Inbox.
 Checkpoint: confirm draft direction before voice pass.
 
