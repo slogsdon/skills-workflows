@@ -200,7 +200,7 @@ Invoke the `obsidian` skill to create a note at `Publishing/LinkedIn/<slug>.md` 
 After writing, commit the vault:
 ```bash
 VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal"
-git -C "$VAULT" add -A && git -C "$VAULT" commit -m "docs: linkedin companion for <slug>"
+git -C "$VAULT" add '<the note paths you wrote>' && git -C "$VAULT" commit -m "docs: linkedin companion for <slug>"
 ```
 
 ---
