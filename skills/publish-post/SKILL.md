@@ -4,8 +4,11 @@ description: >
   End-to-end publishing pipeline for a new article on shane.logsdon.io. Runs text quality passes
   (humanize → ms-style-pass), generates brand-system design artifacts (blog hero OG + in-page hero,
   LinkedIn post image), screenshots them at 1x, wires images into the article frontmatter and site,
-  saves LinkedIn companion text to Obsidian, builds the site, bumps the service worker cache version,
-  and commits + pushes. Unattended — no human checkpoints. Working directory must be the site repo root.
+  routes LinkedIn companion text through humanize and writing-review, saves it to Obsidian, builds
+  the site, bumps the service worker cache version, and commits + pushes.
+  One pre-commit gate can halt the run: unresolved [TK] gaps, claims that fail independent
+  verification, or a missing provenance block. Otherwise unattended — no human checkpoints.
+  Working directory must be the site repo root.
   Triggers: "publish <slug>", "publish the post", "run the publish pipeline", "/publish-post".
 ---
 
