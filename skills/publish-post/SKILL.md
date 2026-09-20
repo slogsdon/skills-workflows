@@ -37,6 +37,7 @@ Run all steps in order. Do not skip steps. Do not pause for review.
 | `companion`     | Save companion text to Obsidian             |
 | `build`         | Build the site                              |
 | `sw-bump`       | Bump service worker cache version           |
+| `pre-commit`    | Gate: gaps, claim verification, provenance  |
 | `commit`        | Stage files, commit, push                   |
 
 ---
@@ -183,7 +184,12 @@ awk '/COMPANION TEXT:/{found=1; next} /-->/{if(found) exit} found{print}' \
   ./design/shane-personal-v2/artifacts/linkedin-*-<slug>.html
 ```
 
-Invoke the `obsidian` skill to create a note at `Publishing/LinkedIn/<slug>.md` with this content:
+The companion text is published prose, and `Publishing/LinkedIn/` is the only surface with a live audience. The design skill that produced it does not voice-check it, so run two passes before it goes near the vault:
+
+1. Invoke `humanize` on the companion text and apply the result.
+2. Invoke `writing-review` and resolve every `ask-author` finding. The post is short enough that one invented number is the whole risk.
+
+Then invoke the `obsidian` skill to create a note at `Publishing/LinkedIn/<slug>.md` with this content:
 
 ```markdown
 # <title>
@@ -221,6 +227,36 @@ Read `public/sw.js`. Find the current cache name (pattern: `shane-logsdon-io-sta
 
 ---
 
+### Step `pre-commit` — the gate before publishing
+
+Three checks. A failure in any of them stops the run: **do not build, do not commit.**
+
+**1. No unresolved gaps.** Scan the article body for `[TK` markers, using the exact article path that `locate` resolved:
+
+```bash
+grep -n '\[TK' "<article-path-from-locate>"
+```
+
+Exit code 1 means no hits, which is the pass case. Do not rely on a `**` glob here: `globstar` is off by default in the bash macOS ships, so `**` silently behaves like a single `*`.
+
+If any are found, **stop. Do not build, do not commit.** Report each hit with its line number and ask Shane to either supply the material or explicitly authorise cutting the passage.
+
+An unresolved `[TK]` at publish time means the article contains either a reader-facing placeholder or, worse, a specific someone invented to fill the gap. Neither ships. This is the one gate in this pipeline that overrides the no-checkpoints rule.
+
+**2. Claims survive an adversary.** Collect every checkable factual claim in the article — numbers, dates, percentages, quotations, causal claims, "first / largest / most" assertions, and customer or vendor statements — together with the path or note that backs each one. Then invoke the `verify` skill **once per claim**. One verifier per claim; never batch two claims into one verifier, and never hand the verifier this session's context or your own summary of it.
+
+A claim with no artifact behind it cannot pass `verify`, and that is by design — it returns `drop` with `unsettled:`, which means the claim needs Shane's sourcing or should be cut. Do not paper over a drop by rewording the claim into something weaker but still unsourced.
+
+**3. Provenance for the commit body.**
+
+```txt
+Author material:    <which sections or language came from Shane, the vault, or his own input>
+Model contribution: <organization, structure, connective prose, artifact generation>
+Open items:         none
+```
+
+---
+
 ### Step `commit` — Commit and push
 
 Stage these files:
@@ -237,9 +273,13 @@ design/shane-personal-v2/components/components.html
 
 Do not stage dist/.
 
-Commit message:
+Commit message. Carry the provenance block from `pre-commit` into the body so each publish records what came from Shane and what the model wrote:
 ```
 feat: publish <slug>
+
+Author material: <sections or language from Shane, the vault, or his own input>
+Model contribution: <organization, structure, connective prose, artifact generation>
+Open items: none
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
@@ -250,14 +290,14 @@ Push to origin.
 
 ## Resume protocol
 
-Default: run all twelve steps in order, end-to-end, no checkpoints.
+Default: run all thirteen steps in order, end-to-end, no checkpoints. `pre-commit` is the only step that can halt a run.
 
 `--resume-from <step>`: skip every step before `<step>` and begin from `<step>`. The named step itself runs. The rest of the pipeline runs end-to-end from there.
 
 If `<step>` is not in `{locate, humanize, style, hero, hero-shot, frontmatter, linkedin, linkedin-shot, companion, build, sw-bump, commit}`, print:
 
     Invalid resume-from step: <step>
-    Valid steps: locate, humanize, style, hero, hero-shot, frontmatter, linkedin, linkedin-shot, companion, build, sw-bump, commit
+    Valid steps: locate, humanize, style, hero, hero-shot, frontmatter, linkedin, linkedin-shot, companion, build, sw-bump, pre-commit, commit
 
 …and stop.
 
@@ -278,6 +318,7 @@ State required to start at each step:
 - `--resume-from companion` — needs the LinkedIn artifact HTML (companion text is embedded in the comment block) and the LinkedIn screenshot path. If either is absent, prompt or run from `linkedin-shot`.
 - `--resume-from build` — independent of prior artifacts; just runs `composer build` against the working tree as it stands.
 - `--resume-from sw-bump` — needs a successful build. If `composer build` has not run since the last edit to `public/`, ask whether to run `build` first.
+- `--resume-from pre-commit` — needs the final article body. Runs the gap scan, the claim verification, and the provenance block. `commit` will not run while any `[TK]` remains unresolved, or while any claim came back `unsettled`.
 - `--resume-from commit` — needs all final files in place (article, images, sw.js bump, design artifacts, screenshots, components.html). Show `git status` before committing so the user can verify the staged set; abort and ask for direction if the diff looks unexpected.
 
 Examples:
@@ -288,9 +329,10 @@ Examples:
 
 ## Rules
 
+- **No open `[TK]` ships, and no unsourced claim ships.** `pre-commit` is a hard gate, not a warning. If it fires, stop and ask. This is the only step in the pipeline allowed to override the no-checkpoints rule.
 - **Order is fixed.** humanize before ms-style-pass. Hero before LinkedIn. Screenshots before frontmatter update. Build before commit.
 - **1x screenshots always.** `deviceScaleFactor: 1` — never 2. Keeps declared og:image dimensions matching the actual PNG.
-- **Companion text to Obsidian, not to the repo.** The companion text note goes to Obsidian only.
+- **Companion text to Obsidian, not to the repo.** The companion text note goes to Obsidian only, and only after it has been through `humanize` and `writing-review`.
 - **Stage all design artifacts and screenshots.** Design artifacts, screenshots, and components.html are committed for documentation. Only dist/ is excluded.
 - **If design-blog-hero or design-linkedin-post need an accent word and none is obvious**, use the most specific noun in the title — the word that would answer "what is this article actually about?"
 - **If the build fails**, stop. Do not commit. Report what failed and suggest `--resume-from build` after the user fixes the underlying issue.
